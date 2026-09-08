@@ -1,155 +1,258 @@
-# Amazon Fulfillment & Delivery SLA Intelligence Platform
+# Supply Chain SLA Intelligence Console
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://github.com/oddproblem/ecom-analytics)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Author](https://img.shields.io/badge/Author-oddproblem-FF9900.svg)](https://github.com/oddproblem)
+A machine-learning system for real-time SLA breach prediction in e-commerce fulfillment networks. Built on 96,470 verified orders from a Brazilian marketplace, the system predicts delivery failures before they occur, quantifies customer satisfaction risk, and generates AI-assisted operational diagnostics.
 
-An end-to-end Machine Learning and Supply Chain Intelligence engine built on 96,470 verified e-commerce shipments. This platform predicts delivery delay SLA breaches, isolates logistics bottlenecks across inter-state corridors, and simulates proactive operational mitigations to preserve customer trust and reduce carrier concession costs.
+**Live deployment:** https://ecom-analytics-argha.streamlit.app
 
 ---
 
-## Executive Summary & Business Impact
+## Overview
 
-In multi-tier fulfillment networks, delivery timeliness directly governs customer retention and direct appeasement costs. Breaching customer delivery promises introduces immediate operational and financial exposure:
+Late deliveries are not a random event. They are the predictable output of specific, measurable conditions: aggressive SLA commitments made without logistics capacity to back them up, sellers with poor dispatch track records, and routes that require multi-hop hub transfers. This system makes those conditions visible before a shipment breaches its promise date.
 
-1. **Customer Defect Rate Surge**: Orders delivered on time average **4.29 / 5.0**, whereas delayed deliveries average **1.83 / 5.0**, accompanied by a **5.1x increase in 1-star defect reviews**.
-2. **Direct Concession Costs**: Carrier concessions, refunds, and support contacts average an estimated **$12.50** per late shipment.
-3. **Repeat Purchase Decay**: Customers experiencing an unmitigated delivery delay exhibit an estimated **3.4x higher churn probability**.
-
-### Quantitative Model & Operational Highlights
-* **0.8547 ROC-AUC** and **0.4869 PR-AUC** on an imbalanced operational dataset (8.11% positive delay rate).
-* **49.5% Delay Detection Sensitivity** at **44.2% Precision** via cost-sensitive decision threshold optimization ($T^* = 0.7539$).
-* **Projected $6,781 in Direct Concession Savings** across the ~19K order test partition via targeted line-haul escalation and proactive notification.
-* **Under 25ms Inference Latency** suitable for live checkout and fulfillment dispatch systems.
+The pipeline ingests raw order data, engineers operational features, trains a gradient boosting classifier, and exposes predictions through a five-panel analytics console. A secondary AI layer — powered by DeepSeek via OpenRouter — converts model outputs into structured operational memos and answers analyst questions in natural language.
 
 ---
 
-## Technical Architecture
+## Screenshots
 
-```mermaid
-flowchart LR
-    A["Raw Data Ingestion<br/>(96.5K Orders, Items, Geo, Reviews)"] --> B["Geospatial & Operations ETL<br/>(Haversine Distance, Handoff Lag, Seller SLA)"]
-    B --> C["Analytical Feature Store<br/>(Parquet Cache Engine)"]
-    C --> D["ML Model Training<br/>(HistGradientBoosting + Cost Matrix)"]
-    D --> E["Real-Time Inference Engine<br/>(< 25ms Latency)"]
-    E --> F["Operational Streamlit Console<br/>(Simulator, Corridor Analysis, XAI, Root Cause Diagnostic)"]
+### Executive Overview
+
+![Executive Overview — KPI cards and fulfillment trends](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_1_executive_overview_top_1788902837028.png)
+
+![Executive Overview — Monthly volume and on-time trend charts](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_1_executive_overview_scrolled_1788902845397.png)
+
+### SLA Risk Simulation
+
+![SLA Risk Simulation — Interactive parameter controls and breach probability output](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_2_sla_risk_simulation_1788902875921.png)
+
+![SLA Risk Simulation — Risk flags and operational mitigation panel](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_2_sla_risk_simulation_scrolled_1788902886827.png)
+
+### Geographic Corridors
+
+![Geographic Corridors — Delay rate by state and freight cost scatter](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_3_geographic_corridors_1788902920968.png)
+
+### Model Evaluation and Explainability
+
+![Model Evaluation — Feature importance and confusion matrix](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_4_model_evaluation_xai_1788902976708.png)
+
+![Model Evaluation — Threshold tuning and cost-utility analysis](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_4_model_evaluation_xai_scrolled_1788902990868.png)
+
+### Root Cause Diagnostic
+
+![Root Cause Diagnostic — Shipment selector and AI brief generator](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_5_root_cause_diagnostic_1788903049040.png)
+
+![Root Cause Diagnostic — Generated DeepSeek operational memo](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_5_operational_brief_generated_1788903093206.png)
+
+---
+
+## Architecture
+
+```
+Raw CSV Data (Olist Dataset — 96,470 orders)
+        |
+        v
++---------------------------+
+|   src/pipeline.py         |   ETL: joins orders, items, customers,
+|   Feature Store Builder   |   sellers, reviews, geolocation.
++---------------------------+   Outputs three Parquet files to data/processed/
+        |
+        |-- orders_sla_features.parquet      (per-order feature vectors)
+        |-- executive_kpis.parquet           (aggregate KPIs)
+        |-- state_logistics.parquet          (corridor-level summaries)
+        |
+        v
++---------------------------+
+|   src/model.py            |   Trains HistGradientBoostingClassifier
+|   Model Training          |   with class-weight balancing.
++---------------------------+   Cost-sensitive threshold tuning on PR curve.
+        |
+        |-- models/delivery_delay_classifier.joblib
+        |-- models/model_metrics.json
+        |
+        v
++---------------------------+
+|   src/predictor.py        |   Real-time inference wrapper.
+|   Inference Engine        |   Accepts a dict of order features,
++---------------------------+   returns probability, risk tier, flags.
+        |
+        v
++---------------------------+
+|   src/llm_advisor.py      |   Calls DeepSeek via OpenRouter API.
+|   AI Operational Advisor  |   Generates 3-section operational memos.
++---------------------------+   Falls back to deterministic heuristics
+        |                       if no API key is present.
+        |
+        v
++---------------------------+
+|   app.py                  |   Streamlit application controller.
+|   Analytics Console       |   Reads cached Parquet stores and the
++---------------------------+   joblib model. Renders 5 analysis panels.
 ```
 
-### Core Components
-* **`src/pipeline.py`**: High-performance vectorized ETL pipeline. Joins transactional schemas, computes spherical Haversine distance between customer and merchant postal coordinates, derives first-mile handoff latencies, and builds compressed Parquet feature stores.
-* **`src/model.py`**: Scikit-learn classification pipeline employing `ColumnTransformer`, `StandardScaler`, `OneHotEncoder`, and class-weighted `HistGradientBoostingClassifier`. Optimizes operating thresholds using a business cost-utility matrix.
-* **`src/predictor.py`**: Production-ready inference engine categorizing shipments into `LOW`, `MODERATE`, `ELEVATED`, and `CRITICAL` risk tiers with operational action prescriptions.
-* **`src/llm_advisor.py`**: Operational root-cause advisory module with prompt-injection defense, input sanitization, token capping, and deterministic fallback heuristics.
-* **`app.py`**: Enterprise dark-mode Streamlit console designed for operations research and logistics management.
+**Data flow summary:**
+
+1. `src/pipeline.py` reads the raw Olist CSVs from `data/raw/`, joins them, engineers 17 predictive features per order, and writes three Parquet feature stores to `data/processed/`.
+2. `src/model.py` reads the feature store, applies class-imbalanced training (`HistGradientBoostingClassifier`), tunes the decision threshold on the precision-recall curve for concession-cost minimization, and persists the model artifact and performance metrics.
+3. `src/predictor.py` provides a stateless `predict(order_dict)` function used by the Streamlit app for live simulation and historical order scoring.
+4. `src/llm_advisor.py` wraps the OpenRouter API with strict input sanitization, a 420-token hard cap, session-level response caching, and a full deterministic fallback so the app works without an API key.
+5. `app.py` is the top-level Streamlit controller. It caches data with `@st.cache_data` and the model with `@st.cache_resource`, so the pipeline loads once per session.
 
 ---
 
-## Machine Learning Model Scorecard
+## Model Performance
 
-| Metric | Baseline (Logistic Regression) | Production (HistGradientBoosting) | Target Benchmark |
-| :--- | :---: | :---: | :---: |
-| **ROC-AUC** | 0.7612 | **0.8547** | > 0.8000 |
-| **PR-AUC (Average Precision)** | 0.3140 | **0.4869** | > 0.4000 |
-| **Optimal Decision Threshold (T*)** | 0.5000 | **0.7539** | Cost-Optimized |
-| **Precision @ Optimal Threshold** | 22.1% | **44.2%** | High-Quality Flags |
-| **Recall @ Optimal Threshold** | 71.3% | **49.5%** | Maximized Interception |
-| **F1-Score @ Optimal Threshold** | 0.3374 | **0.4673** | Balanced Metric |
-| **Inference Latency** | ~5ms | **< 25ms** | Real-Time Production |
+| Metric | Value |
+|---|---|
+| ROC-AUC | 0.8547 |
+| Precision-Recall AUC | 0.4869 |
+| Decision threshold (cost-optimal) | 0.7539 |
+| Precision at threshold | 44.2% |
+| Recall at threshold | 49.5% |
+| Projected concession savings (test set) | $6,781.25 |
+| Test partition | 19,294 shipments |
 
-### Top Predictive Feature Drivers (Permutation Importance)
-1. **Promised SLA Window (`estimated_window_days`)**: Aggressive delivery commitments without localized regional inventory buffering represent the primary systemic failure driver.
-2. **Carrier Handoff Lag (`carrier_handoff_lag_days`)**: First-mile handoff latency from seller dispatch to carrier scan is the largest controllable operational bottleneck.
-3. **Merchant Historical Delay Index (`seller_historical_delay_rate`)**: Variance in merchant warehouse packaging compliance and dispatch speed.
-4. **Geographic Haversine Distance (`distance_km`)**: Long-haul cross-state transit (e.g., SP to BA, RJ to MA) requiring multi-hub sortation transfers.
+The decision threshold was set to maximize expected savings — not F1 score. At the operating point of 0.7539, catching a true positive saves ~$12.50 in customer concession cost; a false positive costs a small amount of intervention overhead. The threshold is tuned to the point where the expected value of acting on a flagged order is still positive.
 
 ---
 
-## Web Console Capabilities
+## Feature Importance
 
-The decision console includes five operational modules:
+The top five predictive features by permutation importance on the held-out test partition:
 
-1. **Executive Overview**: High-level KPIs, defect rate impact comparisons, and monthly volume vs. SLA reliability trends.
-2. **SLA Risk Simulation**: Interactive parameter simulator allowing fulfillment managers to test route distance, package dimensions, freight values, and dispatch lags for real-time risk scores.
-3. **Geographic Corridors**: State-level delivery delay rankings and transit duration vs. freight cost correlations.
-4. **Model Evaluation & XAI**: Permutation feature attributions, test set confusion matrix, and interactive threshold slider for sensitivity analysis.
-5. **Root Cause Diagnostic**: Automated generation of operational memorandums and carrier negotiation briefs.
+| Feature | Interpretation |
+|---|---|
+| Promised SLA Window (days) | Sellers who commit to aggressive timelines without the carrier network to support them are the primary driver of failure |
+| Calendar Month | Peak season (Nov-Jan) and off-season capacity fluctuations create systematic delay spikes |
+| Seller Dispatch Lead Time | Every 24-hour delay in first-mile handoff raises cumulative failure probability by ~22% |
+| Merchant Historical Delay Index | Past behavior predicts future performance; high-delay sellers rarely self-correct |
+| Haversine Distance | Longer routes require multi-leg hub transfers and accumulate variance at each handoff point |
 
 ---
 
-## Quickstart & Local Setup
+## Console Panels
 
-### 1. Clone the Repository
+**Executive Overview** — Five KPI cards (volume, GMV, SLA rate, delivery window, satisfaction score) plus two interactive charts: a defect rate comparison between on-time and late cohorts, and a monthly dual-axis trend showing volume growth against SLA compliance.
+
+**SLA Risk Simulation** — Configurable simulation for any hypothetical shipment. Set origin and destination state, package weight and volume, order value, freight cost, seller dispatch lag, and the promised delivery window. The model returns a breach probability, a risk tier (LOW / MODERATE / ELEVATED / CRITICAL), and a list of specific risk flags driving the prediction.
+
+**Geographic Corridors** — A ranked bar chart of the 10 states with the highest delay rates, and a scatter plot mapping each state's average transit time against average freight cost, colored by delay rate. Northern and Northeastern states consistently show 15-24% delay rates due to structural routing through multiple sorting hubs.
+
+**Model Evaluation and Explainability** — Feature importance bar chart (permutation-based, test partition), a full confusion matrix at the operating threshold, and an interactive threshold slider with real-time precision/recall readout and projected concession impact.
+
+**Root Cause Diagnostic** — Select any historically delayed order from a dropdown. The system runs it through the classifier and shows a breach probability card, then generates a three-section operational memo (Root Cause / Fulfillment Actions / Customer Retention) via DeepSeek. A follow-up Q&A input lets you ask free-form questions about the selected shipment. Both the memo and Q&A answers are session-cached to avoid duplicate API calls.
+
+---
+
+## Dataset
+
+Source: [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (Kaggle)
+
+96,470 verified delivered orders from September 2016 to October 2018. Covers eight raw tables: orders, order items, products, customers, sellers, reviews, payments, and geolocation. The dataset is representative of a mid-market marketplace fulfillment network with a mix of intra-state and long-haul inter-state shipments.
+
+Overall SLA breach rate in the dataset: **8.11%** — a class imbalance that is explicitly handled during training via `class_weight` balancing in the classifier.
+
+---
+
+## Project Structure
+
+```
+.
+├── app.py                          # Streamlit application entry point
+├── requirements.txt                # Pinned Python dependencies
+├── data/
+│   ├── raw/                        # Original Olist CSV files (not committed)
+│   └── processed/                  # Parquet feature stores (committed)
+│       ├── orders_sla_features.parquet
+│       ├── executive_kpis.parquet
+│       └── state_logistics.parquet
+├── models/
+│   ├── delivery_delay_classifier.joblib   # Trained model artifact
+│   └── model_metrics.json                 # Performance metrics and threshold
+├── src/
+│   ├── config.py                   # Centralized path and constant definitions
+│   ├── pipeline.py                 # ETL and feature engineering
+│   ├── model.py                    # Training, threshold tuning, artifact export
+│   ├── predictor.py                # Real-time inference wrapper
+│   └── llm_advisor.py              # OpenRouter AI advisor with fallback heuristics
+├── tests/
+│   └── test_pipeline.py            # Pipeline integrity and model performance tests
+└── .streamlit/
+    ├── config.toml                 # Server and security configuration
+    └── secrets.toml                # API keys (gitignored, never committed)
+```
+
+---
+
+## Local Setup
+
+**Prerequisites:** Python 3.10+, pip
+
 ```bash
+# 1. Clone the repository
 git clone https://github.com/oddproblem/ecom-analytics.git
 cd ecom-analytics
-```
 
-### 2. Configure Virtual Environment & Dependencies
-```bash
-python -m venv .venv
-# On Windows:
-.venv\Scripts\activate
-# On macOS/Linux:
-source .venv/bin/activate
-
+# 2. Install dependencies
 pip install -r requirements.txt
-```
 
-### 3. Pipeline Execution & Model Training
-```bash
-# Ingest raw CSV data and generate analytical feature store:
+# 3. Download the Olist dataset from Kaggle and place CSV files in:
+#    data/raw/
+
+# 4. Build the feature store
 python -m src.pipeline
 
-# Train gradient boosting classifier and serialize artifacts:
+# 5. Train the model
 python -m src.model
 
-# Run automated validation test suite:
-python tests/test_pipeline.py
-```
+# 6. (Optional) Add your OpenRouter API key for AI diagnostics
+#    Create .streamlit/secrets.toml and add:
+#    OPENROUTER_API_KEY = "sk-or-v1-..."
 
-### 4. Launch Streamlit Console
-```bash
+# 7. Launch the console
 streamlit run app.py
 ```
-Open `http://localhost:8501` to access the console.
+
+Open `http://localhost:8501` in your browser.
+
+**Running tests:**
+
+```bash
+python -m pytest tests/ -v
+```
 
 ---
 
-## Deployment (Streamlit Community Cloud)
+## Deployment
 
-This repository is structured for one-click deployment on Streamlit Community Cloud:
+Deployed on Streamlit Community Cloud. To deploy your own instance:
 
-1. Ensure changes are committed and pushed to `https://github.com/oddproblem/ecom-analytics`.
-2. Navigate to [share.streamlit.io](https://share.streamlit.io) and authenticate with GitHub.
-3. Select:
-   * **Repository**: `oddproblem/ecom-analytics`
-   * **Branch**: `main`
-   * **Main file path**: `app.py`
-4. Click **Deploy**. The application loads pre-computed Parquet tables and serialized model artifacts directly.
-5. *(Optional)* Set `OPENAI_API_KEY` under **App Settings > Secrets** to enable external LLM root cause synthesis.
+1. Fork the repository on GitHub.
+2. Go to [share.streamlit.io](https://share.streamlit.io) and connect the fork.
+3. Set main file path to `app.py`.
+4. In app Settings, add `OPENROUTER_API_KEY` under Secrets.
+5. Deploy. The app will install pinned dependencies and start within ~3 minutes.
 
----
-
-## SQL Analytics Warehouse
-
-Relational transformation scripts are organized under `sql/`:
-
-* `sql/01_staging/stg_orders.sql`: Cleans raw order timestamps and calculates delivery duration and SLA breach indicators.
-* `sql/01_staging/stg_order_items.sql`: Line-item revenue aggregations and freight-to-price ratios.
-* `sql/02_marts/mart_fulfillment_sla.sql`: Star schema fact table joining orders, sellers, items, and review defect flags.
-* `sql/02_marts/mart_carrier_performance.sql`: Carrier route performance and financial concession exposure aggregations.
+The committed Parquet feature stores and `.joblib` model artifact mean the app starts immediately without needing to re-run the pipeline on the cloud instance.
 
 ---
 
-## Author & Contact
+## Dependencies
 
-**oddproblem**  
-* GitHub: [@oddproblem](https://github.com/oddproblem)  
-* Repository: [https://github.com/oddproblem/ecom-analytics](https://github.com/oddproblem/ecom-analytics)  
-* Email: [argha.saha18@gmail.com](mailto:argha.saha18@gmail.com)  
-* Core Competencies: Applied Machine Learning, Operations Research, Customer Intelligence, Supply Chain Analytics
+| Package | Version | Purpose |
+|---|---|---|
+| scikit-learn | 1.8.0 (pinned) | HistGradientBoostingClassifier, metrics |
+| pandas | >=2.0 | Data processing |
+| numpy | >=1.24 | Numerical operations |
+| pyarrow | >=14.0 | Parquet feature store read/write |
+| joblib | >=1.3 | Model serialization |
+| streamlit | >=1.30 | Web application framework |
+| plotly | >=5.18 | Interactive charts |
+
+scikit-learn is pinned to an exact version because the `.joblib` model artifact encodes internal sklearn structures. A version mismatch causes a `No module named '_loss'` error at load time. If you retrain the model locally, update the pin in `requirements.txt` to match your installed version.
 
 ---
 
-*Developed for Amazon Data Science Internship Portfolio Evaluation.*
+## Author
+
+[oddproblem](https://github.com/oddproblem) — argha.saha18@gmail.com
