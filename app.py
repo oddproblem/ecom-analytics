@@ -187,27 +187,34 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Resolve API key securely from environment or secrets (zero UI exposure)
-API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("GEMINI_API_KEY")
-if not API_KEY:
-    try:
-        if hasattr(st, "secrets"):
-            API_KEY = st.secrets.get("OPENAI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
-    except Exception:
-        pass
+# Resolve API key from Streamlit secrets or environment (never from UI)
+API_KEY = None
+try:
+    API_KEY = (
+        st.secrets.get("OPENROUTER_API_KEY")
+        or os.getenv("OPENROUTER_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+    )
+except Exception:
+    API_KEY = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+_ai_available = bool(API_KEY)
 
 # Sidebar Operational Telemetry
 st.sidebar.markdown("### Operational Telemetry")
-st.sidebar.markdown(f"- **System Status:** `ONLINE (ACTIVE)`")
+ai_status = "AI Analysis: Active (DeepSeek)" if _ai_available else "AI Analysis: Offline (Heuristics)"
+st.sidebar.markdown(f"- **System Status:** `ONLINE`")
+st.sidebar.markdown(f"- **{ai_status}**")
 st.sidebar.markdown(f"- **Classifier:** `HistGradientBoosting`")
 st.sidebar.markdown(f"- **Validation ROC-AUC:** `{metrics['roc_auc']:.4f}`")
 st.sidebar.markdown(f"- **Precision-Recall AUC:** `{metrics['pr_auc']:.4f}`")
-st.sidebar.markdown(f"- **Operating Decision Threshold:** `{metrics['optimal_threshold']:.4f}`")
-st.sidebar.markdown(f"- **Test Partition Size:** `{metrics['test_sample_size']:,} shipments`")
+st.sidebar.markdown(f"- **Decision Threshold:** `{metrics['optimal_threshold']:.4f}`")
+st.sidebar.markdown(f"- **Test Partition:** `{metrics['test_sample_size']:,} shipments`")
 st.sidebar.markdown("---")
 st.sidebar.caption(
-    "Operational Framework: Supervised gradient boosting with class-imbalanced weighting and cost-sensitive threshold tuning for carrier concession avoidance."
+    "Supervised gradient boosting with class-imbalanced weighting and cost-sensitive threshold optimization."
 )
+
 
 # Navigation Tabs (Clean labels, zero emojis)
 tab_exec, tab_sim, tab_geo, tab_xai, tab_copilot = st.tabs(
@@ -579,48 +586,160 @@ with tab_xai:
 
 
 # ====================================================================
-# TAB 5: ROOT CAUSE DIAGNOSTIC
+# TAB 5: ROOT CAUSE DIAGNOSTIC  (AI-powered via OpenRouter / DeepSeek)
 # ====================================================================
+
+# In-session cache: stores {order_id: memo_text} so same order doesn't
+# trigger a second API call when the user switches tabs and comes back.
+if "analysis_cache" not in st.session_state:
+    st.session_state.analysis_cache = {}
+
 with tab_copilot:
-    st.markdown("### Automated Root Cause Diagnostic")
-    st.caption("Generate structured operational memorandums and carrier negotiation briefs for critical shipments.")
+    st.markdown("### Root Cause Diagnostic")
+    st.caption(
+        "Generates a structured operational memo for any historically delayed shipment. "
+        + ("Analysis powered by **DeepSeek** via OpenRouter." if _ai_available else
+           "Running on deterministic expert heuristics — add `OPENROUTER_API_KEY` to Streamlit secrets to enable AI.")
+    )
 
-    col_co1, col_co2 = st.columns([1, 2])
+    st.markdown("---")
 
-    with col_co1:
-        st.markdown("##### Select Historical Shipment for Analysis")
-        high_risk_orders = df_orders[df_orders["is_delayed"] == 1].head(15)
+    # ---- Shipment Selector ----
+    high_risk_orders = df_orders[df_orders["is_delayed"] == 1].head(20)
+    
+    # Aggregate some context columns for display
+    col_sel, col_meta = st.columns([2, 1])
+    with col_sel:
         selected_idx = st.selectbox(
-            "Select an order from delayed cohort:",
+            "Select a delayed shipment:",
             range(len(high_risk_orders)),
-            format_func=lambda i: f"Order {high_risk_orders.iloc[i]['order_id'][:8]} | {high_risk_orders.iloc[i]['seller_state']} to {high_risk_orders.iloc[i]['customer_state']} ({high_risk_orders.iloc[i]['delay_days']:.0f}d breach)",
+            format_func=lambda i: (
+                f"Order ...{high_risk_orders.iloc[i]['order_id'][-8:]}  |  "
+                f"{high_risk_orders.iloc[i]['seller_state']} → "
+                f"{high_risk_orders.iloc[i]['customer_state']}  |  "
+                f"{high_risk_orders.iloc[i]['delay_days']:.0f}d late  |  "
+                f"${high_risk_orders.iloc[i]['price']:.0f} order"
+            ),
         )
-        target_row = high_risk_orders.iloc[selected_idx].to_dict()
 
-        generate_btn = st.button("Generate Diagnostic Brief", type="primary")
+    target_row = high_risk_orders.iloc[selected_idx].to_dict()
+    cache_key  = str(target_row.get("order_id", selected_idx))
 
-    with col_co2:
-        if generate_btn:
-            with st.spinner("Processing telemetry and generating operational brief..."):
-                target_pred = predictor.predict(target_row)
-                report_md = generate_llm_analysis(target_row, target_pred, api_key=API_KEY)
-                st.markdown(report_md)
+    with col_meta:
+        target_pred = predictor.predict(target_row)
+        risk_style  = f"status-{target_pred['risk_level'].lower()}"
+        st.markdown(
+            f"""
+            <div class="metric-card" style="margin-top: 4px;">
+                <div style="font-size: 0.78rem; color: #9CA3AF; text-transform: uppercase; font-weight: 600;">Model Breach Probability</div>
+                <div style="font-size: 2rem; font-weight: 700; color: {target_pred['risk_color']};">{target_pred['delay_probability_pct']}%</div>
+                <span class="status-badge {risk_style}">{target_pred['risk_level']}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # ---- Generate / cache ----
+    generate_btn = st.button("Generate Operational Brief", type="primary")
+
+    if generate_btn:
+        if cache_key in st.session_state.analysis_cache:
+            # Serve from in-session cache — zero API cost
+            report_md = st.session_state.analysis_cache[cache_key]
+            st.caption("Served from session cache.")
         else:
-            st.info("Select a shipment from the selector and click 'Generate Diagnostic Brief' to view the operational report.")
+            with st.spinner("Analysing shipment telemetry..."):
+                report_md = generate_llm_analysis(target_row, target_pred, api_key=API_KEY)
+                st.session_state.analysis_cache[cache_key] = report_md
+        st.markdown(report_md)
 
-# Footer Section with Working Links & Compliance Information
+    elif cache_key in st.session_state.analysis_cache:
+        st.caption("Previously generated for this order (session cache):")
+        st.markdown(st.session_state.analysis_cache[cache_key])
+
+    else:
+        st.info("Select a shipment above and click **Generate Operational Brief**.")
+
+    st.markdown("---")
+
+    # ---- Analyst Q&A: ask a follow-up question about ANY delayed order ----
+    st.markdown("#### Ask the Analyst")
+    st.caption(
+        "Ask any follow-up question about the selected shipment or the broader dataset. "
+        "One focused question per request keeps API usage minimal."
+    )
+
+    user_question = st.text_input(
+        "Question:",
+        placeholder="e.g. What would reduce the delay rate in SP to BA corridor?",
+        max_chars=200,
+    )
+    ask_btn = st.button("Ask", key="ask_analyst_btn")
+
+    if ask_btn and user_question.strip():
+        qa_cache_key = f"qa_{cache_key}_{hash(user_question.strip())}"
+        if qa_cache_key in st.session_state.analysis_cache:
+            st.markdown(st.session_state.analysis_cache[qa_cache_key])
+            st.caption("Served from session cache.")
+        elif not _ai_available:
+            st.warning(
+                "AI analysis is offline. Add your OpenRouter key to `.streamlit/secrets.toml` as "
+                "`OPENROUTER_API_KEY` to enable this feature."
+            )
+        else:
+            import re as _re
+            safe_q = _re.sub(r"[^a-zA-Z0-9 .,?'\-:/]", "", user_question.strip())[:200]
+            qa_prompt = (
+                f"You are a supply-chain analyst.\n"
+                f"Context: Delayed shipment on the {target_row.get('seller_state','SP')} → "
+                f"{target_row.get('customer_state','RJ')} corridor. "
+                f"Actual delay: {target_row.get('delay_days', 0):.0f} days. "
+                f"Model breach probability: {target_pred['delay_probability_pct']}%.\n\n"
+                f"Question: {safe_q}\n\n"
+                f"Answer in 120 words or fewer. No emojis. Plain markdown only."
+            )
+            try:
+                import json as _json, urllib.request as _ur
+                payload = _json.dumps({
+                    "model": "deepseek/deepseek-chat",
+                    "messages": [{"role": "user", "content": qa_prompt}],
+                    "max_tokens": 160,
+                    "temperature": 0.2,
+                }).encode()
+                req = _ur.Request(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    data=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {API_KEY}",
+                        "HTTP-Referer": "https://github.com/oddproblem/ecom-analytics",
+                        "X-Title": "SLA Intelligence Console",
+                    },
+                    method="POST",
+                )
+                with _ur.urlopen(req, timeout=10) as resp:
+                    body = _json.loads(resp.read().decode())
+                    answer = body["choices"][0]["message"]["content"].strip()
+                    st.session_state.analysis_cache[qa_cache_key] = answer
+                    st.markdown(answer)
+            except Exception as err:
+                st.error(f"API request failed: {err}")
+    elif ask_btn and not user_question.strip():
+        st.warning("Please type a question before clicking Ask.")
+
+
+# Footer
 st.markdown(
     """
     <div class="footer-container">
         <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
             <div>
-                &copy; 2026 <b>oddproblem</b>. All rights reserved. | 
-                <a href="https://github.com/oddproblem/ecom-analytics" target="_blank">GitHub Repository</a> | 
-                <a href="mailto:argha.saha18@gmail.com">Contact Engineering (argha.saha18@gmail.com)</a>
+                &copy; 2026 <b>oddproblem</b>. All rights reserved. |
+                <a href="https://github.com/oddproblem/ecom-analytics" target="_blank">GitHub Repository</a> |
+                <a href="mailto:argha.saha18@gmail.com">Contact: argha.saha18@gmail.com</a>
             </div>
             <div>
-                <span>Compliance: Amazon Leadership Principles (Customer Obsession, Ownership, Dive Deep)</span> | 
-                <span>Confidential: Internal Operations Analytics</span>
+                Built for Amazon Data Science Internship Application
             </div>
         </div>
     </div>
