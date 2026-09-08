@@ -1,0 +1,112 @@
+{
+  "roc_auc": 0.8547,
+  "pr_auc": 0.4869,
+  "optimal_threshold": 0.7539,
+  "precision_at_optimal": 0.4424,
+  "recall_at_optimal": 0.4952,
+  "f1_at_optimal": 0.4673,
+  "test_sample_size": 19294,
+  "actual_delays_in_test": 1565,
+  "confusion_matrix": {
+    "tn": 16752,
+    "fp": 977,
+    "fn": 790,
+    "tp": 775
+  },
+  "business_impact": {
+    "concessions_saved_usd": 6781.25,
+    "delays_detected": 775,
+    "false_alarms": 977
+  },
+  "numeric_features": [
+    "distance_km",
+    "freight_value",
+    "price",
+    "freight_ratio",
+    "product_weight_kg",
+    "product_volume_liters",
+    "estimated_window_days",
+    "approval_delay_hours",
+    "carrier_handoff_lag_days",
+    "seller_historical_delay_rate",
+    "items_count"
+  ],
+  "categorical_features": [
+    "is_same_state",
+    "customer_state",
+    "seller_state",
+    "purchase_dow",
+    "purchase_month",
+    "is_holiday_season"
+  ],
+  "top_features": [
+    {
+      "feature": "estimated_window_days",
+      "importance": 0.1447570156451737
+    },
+    {
+      "feature": "purchase_month",
+      "importance": 0.08092437533227022
+    },
+    {
+      "feature": "carrier_handoff_lag_days",
+      "importance": 0.06970907382091603
+    },
+    {
+      "feature": "seller_historical_delay_rate",
+      "importance": 0.05923900660742779
+    },
+    {
+      "feature": "customer_state",
+      "importance": 0.03461067441330604
+    },
+    {
+      "feature": "distance_km",
+      "importance": 0.02737312030075197
+    },
+    {
+      "feature": "is_same_state",
+      "importance": 0.006397385509227675
+    },
+    {
+      "feature": "items_count",
+      "importance": 0.005037451583504289
+    },
+    {
+      "feature": "is_holiday_season",
+      "importance": 0.003530369484316879
+    },
+    {
+      "feature": "freight_value",
+      "importance": 0.0029334700387333434
+    },
+    {
+      "feature": "approval_delay_hours",
+      "importance": 0.002619000151894979
+    },
+    {
+      "feature": "seller_state",
+      "importance": 0.0014097744360903608
+    },
+    {
+      "feature": "freight_ratio",
+      "importance": 0.00104665071770349
+    },
+    {
+      "feature": "purchase_dow",
+      "importance": 0.0003014164198374969
+    },
+    {
+      "feature": "product_weight_kg",
+      "importance": 0.0001139211665528439
+    },
+    {
+      "feature": "product_volume_liters",
+      "importance": 0.00010917445127974397
+    },
+    {
+      "feature": "price",
+      "importance": 9.493430546066624e-05
+    }
+  ]
+}
