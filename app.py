@@ -187,16 +187,18 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Sidebar System Controls
-st.sidebar.markdown("### System Configuration")
-api_key_input = st.sidebar.text_input(
-    "API Key (Optional for Custom Inference)",
-    type="password",
-    help="Optional OpenAI or Google Gemini key for generating ad-hoc root cause memos. When unpopulated, system runs deterministic expert heuristics.",
-)
+# Resolve API key securely from environment or secrets (zero UI exposure)
+API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("GEMINI_API_KEY")
+if not API_KEY:
+    try:
+        if hasattr(st, "secrets"):
+            API_KEY = st.secrets.get("OPENAI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
+    except Exception:
+        pass
 
-st.sidebar.markdown("---")
+# Sidebar Operational Telemetry
 st.sidebar.markdown("### Operational Telemetry")
+st.sidebar.markdown(f"- **System Status:** `ONLINE (ACTIVE)`")
 st.sidebar.markdown(f"- **Classifier:** `HistGradientBoosting`")
 st.sidebar.markdown(f"- **Validation ROC-AUC:** `{metrics['roc_auc']:.4f}`")
 st.sidebar.markdown(f"- **Precision-Recall AUC:** `{metrics['pr_auc']:.4f}`")
@@ -601,7 +603,7 @@ with tab_copilot:
         if generate_btn:
             with st.spinner("Processing telemetry and generating operational brief..."):
                 target_pred = predictor.predict(target_row)
-                report_md = generate_llm_analysis(target_row, target_pred, api_key=api_key_input)
+                report_md = generate_llm_analysis(target_row, target_pred, api_key=API_KEY)
                 st.markdown(report_md)
         else:
             st.info("Select a shipment from the selector and click 'Generate Diagnostic Brief' to view the operational report.")
