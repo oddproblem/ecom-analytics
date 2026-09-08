@@ -1,30 +1,31 @@
-# Amazon Fulfillment & Delivery SLA Intelligence Platform 📦🚀
+# Amazon Fulfillment & Delivery SLA Intelligence Platform
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://github.com/oddproblem/ecom-analytics)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Author](https://img.shields.io/badge/Author-oddproblem-FF9900.svg)](https://github.com/oddproblem)
 
-An end-to-end Machine Learning and Supply Chain Intelligence engine built on **96,470 real-world e-commerce shipments**. This platform predicts delivery delay SLA breaches, isolates logistics bottlenecks across inter-state corridors, and simulates proactive operational mitigations to preserve customer trust and eliminate carrier concession costs.
+An end-to-end Machine Learning and Supply Chain Intelligence engine built on 96,470 verified e-commerce shipments. This platform predicts delivery delay SLA breaches, isolates logistics bottlenecks across inter-state corridors, and simulates proactive operational mitigations to preserve customer trust and reduce carrier concession costs.
 
 ---
 
-## 🌟 Executive Summary & Business Impact
+## Executive Summary & Business Impact
 
-In modern e-commerce and logistics networks (such as Amazon Fulfillment), **on-time delivery is the cornerstone of Customer Obsession**. When customer delivery promises are breached:
-1. **Defect Reviews Surge 5.1x**: Customer satisfaction drops catastrophically—orders delivered on time average **4.29 ★**, while delayed deliveries collapse to **1.83 ★** with a massive influx of 1-star defect reviews.
-2. **Concession Bleed**: Retailers spend millions in appeasement credits, concessions, and customer service contacts (~**$12.50** average direct cost per late shipment).
-3. **Repeat Purchase Decay**: Customers experiencing a delivery delay exhibit a **3.4x higher churn rate**.
+In multi-tier fulfillment networks, delivery timeliness directly governs customer retention and direct appeasement costs. Breaching customer delivery promises introduces immediate operational and financial exposure:
 
-### Quantified Results:
-* **0.8547 ROC-AUC** & **0.4869 PR-AUC** on highly imbalanced delay data (~8.11% positive class).
-* **49.5% Delay Detection Recall** at **44.2% Precision** via cost-sensitive threshold tuning ($T^* = 0.7539$).
-* **Projected $6,781 Concession Savings** per ~19K order test batch via proactive carrier rerouting and preemptive customer notifications.
-* **< 25ms Real-Time Inference Latency** for checkout and seller-dispatch pipeline integration.
+1. **Customer Defect Rate Surge**: Orders delivered on time average **4.29 / 5.0**, whereas delayed deliveries average **1.83 / 5.0**, accompanied by a **5.1x increase in 1-star defect reviews**.
+2. **Direct Concession Costs**: Carrier concessions, refunds, and support contacts average an estimated **$12.50** per late shipment.
+3. **Repeat Purchase Decay**: Customers experiencing an unmitigated delivery delay exhibit an estimated **3.4x higher churn probability**.
+
+### Quantitative Model & Operational Highlights
+* **0.8547 ROC-AUC** and **0.4869 PR-AUC** on an imbalanced operational dataset (8.11% positive delay rate).
+* **49.5% Delay Detection Sensitivity** at **44.2% Precision** via cost-sensitive decision threshold optimization ($T^* = 0.7539$).
+* **Projected $6,781 in Direct Concession Savings** across the ~19K order test partition via targeted line-haul escalation and proactive notification.
+* **Under 25ms Inference Latency** suitable for live checkout and fulfillment dispatch systems.
 
 ---
 
-## 🏗️ Architecture & Pipeline Overview
+## Technical Architecture
 
 ```mermaid
 flowchart LR
@@ -32,67 +33,51 @@ flowchart LR
     B --> C["Analytical Feature Store<br/>(Parquet Cache Engine)"]
     C --> D["ML Model Training<br/>(HistGradientBoosting + Cost Matrix)"]
     D --> E["Real-Time Inference Engine<br/>(< 25ms Latency)"]
-    E --> F["Interactive Streamlit Dashboard<br/>(Simulator, Geo Heatmap, XAI, AI Copilot)"]
+    E --> F["Operational Streamlit Console<br/>(Simulator, Corridor Analysis, XAI, Root Cause Diagnostic)"]
 ```
 
-### Key Technical Modules:
-* **`src/pipeline.py`**: High-performance vectorized ETL. Joins relational schemas, calculates spherical Haversine distances between customer and seller zipcodes, derives first-mile handoff latencies, and builds compressed Parquet feature stores.
-* **`src/model.py`**: Scikit-Learn Machine Learning pipeline with `ColumnTransformer`, `StandardScaler`, `OneHotEncoder`, and class-weighted `HistGradientBoostingClassifier`. Evaluates ROC-AUC, Precision-Recall curves, and computes permutation feature attributions.
-* **`src/predictor.py`**: Production-ready inference class categorizing shipments into `LOW`, `MODERATE`, `ELEVATED`, and `CRITICAL` risk tiers with prescriptive mitigation recommendations.
-* **`src/llm_advisor.py`**: Executive AI Copilot supporting LLM API integration with automatic fallback to built-in Amazon Logistics expert heuristics.
-* **`app.py`**: Modern, Amazon-styled dark theme Streamlit web application.
+### Core Components
+* **`src/pipeline.py`**: High-performance vectorized ETL pipeline. Joins transactional schemas, computes spherical Haversine distance between customer and merchant postal coordinates, derives first-mile handoff latencies, and builds compressed Parquet feature stores.
+* **`src/model.py`**: Scikit-learn classification pipeline employing `ColumnTransformer`, `StandardScaler`, `OneHotEncoder`, and class-weighted `HistGradientBoostingClassifier`. Optimizes operating thresholds using a business cost-utility matrix.
+* **`src/predictor.py`**: Production-ready inference engine categorizing shipments into `LOW`, `MODERATE`, `ELEVATED`, and `CRITICAL` risk tiers with operational action prescriptions.
+* **`src/llm_advisor.py`**: Operational root-cause advisory module with prompt-injection defense, input sanitization, token capping, and deterministic fallback heuristics.
+* **`app.py`**: Enterprise dark-mode Streamlit console designed for operations research and logistics management.
 
 ---
 
-## 📊 Machine Learning Model Scorecard
+## Machine Learning Model Scorecard
 
-| Metric | Baseline (Logistic Reg) | Production (HistGradientBoosting) | Target Benchmark |
+| Metric | Baseline (Logistic Regression) | Production (HistGradientBoosting) | Target Benchmark |
 | :--- | :---: | :---: | :---: |
-| **ROC-AUC** | 0.7612 | **0.8547** | `> 0.8000` |
-| **PR-AUC (Average Precision)** | 0.3140 | **0.4869** | `> 0.4000` |
-| **Optimal Decision Threshold ($T^*$)** | 0.5000 | **0.7539** | Cost-Optimized |
-| **Precision @ Optimal** | 22.1% | **44.2%** | High Quality Flags |
-| **Recall @ Optimal** | 71.3% | **49.5%** | Maximized Interception |
-| **F1-Score @ Optimal** | 0.3374 | **0.4673** | Balanced Metric |
-| **Inference Latency** | ~5ms | **< 25ms** | Real-Time Capable |
+| **ROC-AUC** | 0.7612 | **0.8547** | > 0.8000 |
+| **PR-AUC (Average Precision)** | 0.3140 | **0.4869** | > 0.4000 |
+| **Optimal Decision Threshold (T*)** | 0.5000 | **0.7539** | Cost-Optimized |
+| **Precision @ Optimal Threshold** | 22.1% | **44.2%** | High-Quality Flags |
+| **Recall @ Optimal Threshold** | 71.3% | **49.5%** | Maximized Interception |
+| **F1-Score @ Optimal Threshold** | 0.3374 | **0.4673** | Balanced Metric |
+| **Inference Latency** | ~5ms | **< 25ms** | Real-Time Production |
 
-### 🔍 Top Predictive Feature Drivers (Permutation Importance):
-1. **Promised SLA Window (`estimated_window_days`)**: Overly aggressive delivery commitments without regional inventory buffering are the #1 root cause of SLA violations.
-2. **Carrier Handoff Lag (`carrier_handoff_lag_days`)**: Delays in the first-mile seller dispatch to carrier handoff exponentially increase delivery risk.
-3. **Seller Historical Late Rate (`seller_historical_delay_rate`)**: Merchant fulfillment velocity and packaging compliance variance.
-4. **Geographic Haversine Distance (`distance_km`) & Corridor**: Long-haul cross-state transit routes (e.g., SP → BA, RJ → MA) crossing multiple logistics sorting hubs.
-
----
-
-## 💻 Streamlit Web Application Features
-
-The interactive dashboard consists of 5 dedicated tabs:
-
-1. **📊 Executive Command Center**:
-   * Real-time KPIs: Volume, GMV, On-Time Rate (91.9%), Average Delivery Duration, Concession Exposure.
-   * Delivery Delay vs Customer Rating Scatter Analysis illustrating the defect rate cliff.
-   * Longitudinal monthly trend analysis of shipment volumes vs SLA adherence.
-
-2. **🎯 Live SLA Risk Predictor & Simulator**:
-   * Interactive input controls: Origin/Destination State, Distance, Package Weight, Order Value, Freight Cost, Dispatch Lag, and Promised Delivery Window.
-   * Instant Risk Scorecard with color-coded risk badge, operational risk flags, prescriptive action, and concession avoidance ROI.
-
-3. **🗺️ Geographic Logistics & Bottlenecks**:
-   * State-by-state delivery delay ranking (identifying high-friction transit corridors like AL, MA, SE with >15% delay rates).
-   * Transit speed vs freight cost correlation analysis.
-
-4. **🧠 Model Transparency & Explainability (XAI)**:
-   * Permutation feature importance rankings.
-   * Confusion matrix at the optimal business threshold.
-   * Interactive Decision Threshold slider allowing operational leaders to simulate Precision vs Recall trade-offs in real-time.
-
-5. **🤖 AI Fulfillment Copilot**:
-   * Executive root-cause memorandums and carrier negotiation briefs.
-   * Integrated LLM API support (OpenAI / Gemini) with intelligent expert heuristic fallback.
+### Top Predictive Feature Drivers (Permutation Importance)
+1. **Promised SLA Window (`estimated_window_days`)**: Aggressive delivery commitments without localized regional inventory buffering represent the primary systemic failure driver.
+2. **Carrier Handoff Lag (`carrier_handoff_lag_days`)**: First-mile handoff latency from seller dispatch to carrier scan is the largest controllable operational bottleneck.
+3. **Merchant Historical Delay Index (`seller_historical_delay_rate`)**: Variance in merchant warehouse packaging compliance and dispatch speed.
+4. **Geographic Haversine Distance (`distance_km`)**: Long-haul cross-state transit (e.g., SP to BA, RJ to MA) requiring multi-hub sortation transfers.
 
 ---
 
-## 🚀 Quickstart & Local Setup
+## Web Console Capabilities
+
+The decision console includes five operational modules:
+
+1. **Executive Overview**: High-level KPIs, defect rate impact comparisons, and monthly volume vs. SLA reliability trends.
+2. **SLA Risk Simulation**: Interactive parameter simulator allowing fulfillment managers to test route distance, package dimensions, freight values, and dispatch lags for real-time risk scores.
+3. **Geographic Corridors**: State-level delivery delay rankings and transit duration vs. freight cost correlations.
+4. **Model Evaluation & XAI**: Permutation feature attributions, test set confusion matrix, and interactive threshold slider for sensitivity analysis.
+5. **Root Cause Diagnostic**: Automated generation of operational memorandums and carrier negotiation briefs.
+
+---
+
+## Quickstart & Local Setup
 
 ### 1. Clone the Repository
 ```bash
@@ -100,7 +85,7 @@ git clone https://github.com/oddproblem/ecom-analytics.git
 cd ecom-analytics
 ```
 
-### 2. Set Up Virtual Environment & Dependencies
+### 2. Configure Virtual Environment & Dependencies
 ```bash
 python -m venv .venv
 # On Windows:
@@ -111,44 +96,44 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Run Pipeline & Train Model (Pre-computed artifacts already included)
+### 3. Pipeline Execution & Model Training
 ```bash
-# Process raw CSVs into cached Parquet feature stores:
+# Ingest raw CSV data and generate analytical feature store:
 python -m src.pipeline
 
-# Train Gradient Boosting model and save serialized artifacts:
+# Train gradient boosting classifier and serialize artifacts:
 python -m src.model
 
-# Run automated pipeline tests:
+# Run automated validation test suite:
 python tests/test_pipeline.py
 ```
 
-### 4. Launch Streamlit Web Application
+### 4. Launch Streamlit Console
 ```bash
 streamlit run app.py
 ```
-Open `http://localhost:8501` in your browser to interact with the platform.
+Open `http://localhost:8501` to access the console.
 
 ---
 
-## ☁️ Deployment Guide (Streamlit Community Cloud)
+## Deployment (Streamlit Community Cloud)
 
-This repository is optimized for **1-click zero-configuration deployment** on **Streamlit Community Cloud**:
+This repository is structured for one-click deployment on Streamlit Community Cloud:
 
-1. Fork or push this repository to your GitHub account (`https://github.com/oddproblem/ecom-analytics`).
-2. Log into [share.streamlit.io](https://share.streamlit.io/).
-3. Click **"New App"** and select:
+1. Ensure changes are committed and pushed to `https://github.com/oddproblem/ecom-analytics`.
+2. Navigate to [share.streamlit.io](https://share.streamlit.io) and authenticate with GitHub.
+3. Select:
    * **Repository**: `oddproblem/ecom-analytics`
    * **Branch**: `main`
    * **Main file path**: `app.py`
-4. Click **"Deploy!"**. The app loads instantly using the pre-cached Parquet feature store and serialized model artifacts.
-5. *(Optional)* Add your `OPENAI_API_KEY` or `GEMINI_API_KEY` under **App Settings → Secrets** to enable the AI Copilot.
+4. Click **Deploy**. The application loads pre-computed Parquet tables and serialized model artifacts directly.
+5. *(Optional)* Set `OPENAI_API_KEY` under **App Settings > Secrets** to enable external LLM root cause synthesis.
 
 ---
 
-## 🏛️ SQL Analytics Warehouse Schema
+## SQL Analytics Warehouse
 
-In addition to Python and Streamlit, this repository includes clean SQL data warehouse definitions located in `sql/`:
+Relational transformation scripts are organized under `sql/`:
 
 * `sql/01_staging/stg_orders.sql`: Cleans raw order timestamps and calculates delivery duration and SLA breach indicators.
 * `sql/01_staging/stg_order_items.sql`: Line-item revenue aggregations and freight-to-price ratios.
@@ -157,12 +142,13 @@ In addition to Python and Streamlit, this repository includes clean SQL data war
 
 ---
 
-## 👤 Author & Contact
+## Author & Contact
 
 **oddproblem**  
 * GitHub: [@oddproblem](https://github.com/oddproblem)  
 * Repository: [https://github.com/oddproblem/ecom-analytics](https://github.com/oddproblem/ecom-analytics)  
-* Focus: Applied Machine Learning, Operations Research, Customer Intelligence & E-Commerce Logistics
+* Email: [argha.saha18@gmail.com](mailto:argha.saha18@gmail.com)  
+* Core Competencies: Applied Machine Learning, Operations Research, Customer Intelligence, Supply Chain Analytics
 
 ---
 

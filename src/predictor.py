@@ -84,7 +84,7 @@ class DeliveryDelayPredictor:
         else:
             risk_level = "CRITICAL"
             risk_color = "#EF4444"  # Red
-            action = "High probability of breach! Reroute to express carrier and trigger proactive customer notification."
+            action = "Critical SLA breach risk. Escalate to priority line-haul carrier and queue preemptive customer notification."
 
         # Operational risk factors detected
         flags = []
