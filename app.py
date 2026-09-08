@@ -738,9 +738,6 @@ st.markdown(
                 <a href="https://github.com/oddproblem/ecom-analytics" target="_blank">GitHub Repository</a> |
                 <a href="mailto:argha.saha18@gmail.com">Contact: argha.saha18@gmail.com</a>
             </div>
-            <div>
-                Built for Amazon Data Science Internship Application
-            </div>
         </div>
     </div>
     """,
