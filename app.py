@@ -1,6 +1,6 @@
 """
-Amazon Supply Chain & Fulfillment SLA Intelligence Console
-Enterprise Operational Decision Support System
+E-Commerce Delivery SLA Intelligence Console
+Predictive ML system for supply chain breach detection and operational diagnostics
 
 Author: oddproblem (https://github.com/oddproblem/ecom-analytics)
 """
@@ -32,7 +32,7 @@ from src.llm_advisor import generate_llm_analysis
 
 # Page Configuration - Clean title, standard favicon
 st.set_page_config(
-    page_title="Amazon Supply Chain SLA Intelligence Console",
+    page_title="E-Commerce SLA Intelligence Console",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -168,7 +168,7 @@ except Exception as e:
 st.markdown(
     """
     <div class="header-container">
-        <div class="system-breadcrumb">AWS Supply Chain / Fulfillment Operations / SLA Risk Monitoring</div>
+        <div class="system-breadcrumb">E-Commerce Analytics / Fulfillment Operations / SLA Risk Monitoring</div>
         <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap;">
             <div>
                 <h1 class="system-title">Fulfillment & Delivery SLA Intelligence Console</h1>

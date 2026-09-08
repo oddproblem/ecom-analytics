@@ -1,4 +1,4 @@
-# Supply Chain SLA Intelligence Console
+# E-Commerce Delivery SLA Intelligence Console
 
 A machine-learning system for real-time SLA breach prediction in e-commerce fulfillment networks. Built on 96,470 verified orders from a Brazilian marketplace, the system predicts delivery failures before they occur, quantifies customer satisfaction risk, and generates AI-assisted operational diagnostics.
 
@@ -18,31 +18,31 @@ The pipeline ingests raw order data, engineers operational features, trains a gr
 
 ### Executive Overview
 
-![Executive Overview — KPI cards and fulfillment trends](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_1_executive_overview_top_1788902837028.png)
+![Executive Overview — KPI cards and fulfillment trends](docs/01_executive_overview.png)
 
-![Executive Overview — Monthly volume and on-time trend charts](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_1_executive_overview_scrolled_1788902845397.png)
+![Executive Overview — Monthly volume and on-time trend charts](docs/02_executive_charts.png)
 
 ### SLA Risk Simulation
 
-![SLA Risk Simulation — Interactive parameter controls and breach probability output](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_2_sla_risk_simulation_1788902875921.png)
+![SLA Risk Simulation — Interactive parameter controls and breach probability output](docs/03_sla_simulation.png)
 
-![SLA Risk Simulation — Risk flags and operational mitigation panel](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_2_sla_risk_simulation_scrolled_1788902886827.png)
+![SLA Risk Simulation — Risk flags and operational mitigation panel](docs/04_sla_risk_output.png)
 
 ### Geographic Corridors
 
-![Geographic Corridors — Delay rate by state and freight cost scatter](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_3_geographic_corridors_1788902920968.png)
+![Geographic Corridors — Delay rate by state and freight cost scatter](docs/05_geographic_corridors.png)
 
 ### Model Evaluation and Explainability
 
-![Model Evaluation — Feature importance and confusion matrix](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_4_model_evaluation_xai_1788902976708.png)
+![Model Evaluation — Feature importance and confusion matrix](docs/06_model_evaluation.png)
 
-![Model Evaluation — Threshold tuning and cost-utility analysis](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_4_model_evaluation_xai_scrolled_1788902990868.png)
+![Model Evaluation — Threshold tuning and cost-utility analysis](docs/07_threshold_tuning.png)
 
 ### Root Cause Diagnostic
 
-![Root Cause Diagnostic — Shipment selector and AI brief generator](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_5_root_cause_diagnostic_1788903049040.png)
+![Root Cause Diagnostic — Shipment selector and AI brief generator](docs/08_root_cause_diagnostic.png)
 
-![Root Cause Diagnostic — Generated DeepSeek operational memo](C:/Users/argha/.gemini/antigravity-ide/brain/c7ddced7-1cc5-40ee-8a97-839585174320/tab_5_operational_brief_generated_1788903093206.png)
+![Root Cause Diagnostic — Generated DeepSeek operational memo](docs/09_ai_operational_brief.png)
 
 ---
 
