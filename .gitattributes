@@ -1,0 +1,2 @@
+# Force GitHub Linguist to detect SQL in repository language statistics
+*.sql linguist-detectable=true

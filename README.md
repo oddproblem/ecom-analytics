@@ -169,6 +169,13 @@ Overall SLA breach rate in the dataset: **8.11%** — a class imbalance that is 
 ├── models/
 │   ├── delivery_delay_classifier.joblib   # Trained model artifact
 │   └── model_metrics.json                 # Performance metrics and threshold
+├── sql/
+│   ├── 01_staging/                        # Data cleaning and standardizing views
+│   │   ├── stg_orders.sql                 # Order lifecycle, lead times, and SLA flags
+│   │   └── stg_order_items.sql            # Order items, pricing, and freight ratios
+│   └── 02_marts/                          # Dimensional modeling / star schema marts
+│       ├── mart_fulfillment_sla.sql       # Core fulfillment fact table
+│       └── mart_carrier_performance.sql   # Carrier and route-level aggregation
 ├── src/
 │   ├── config.py                   # Centralized path and constant definitions
 │   ├── pipeline.py                 # ETL and feature engineering
