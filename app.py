@@ -28,7 +28,7 @@ from src.config import (
     ESTIMATED_CONCESSION_COST_USD,
 )
 from src.predictor import DeliveryDelayPredictor
-from src.llm_advisor import generate_llm_analysis
+from src.llm_advisor import generate_llm_analysis, ask_analyst_qa, AVAILABLE_MODELS
 
 # Page Configuration - Clean title, standard favicon
 st.set_page_config(
@@ -202,7 +202,7 @@ _ai_available = bool(API_KEY)
 
 # Sidebar Operational Telemetry
 st.sidebar.markdown("### Operational Telemetry")
-ai_status = "AI Analysis: Active (DeepSeek)" if _ai_available else "AI Analysis: Offline (Heuristics)"
+ai_status = "AI Engine: Active" if _ai_available else "AI Engine: Offline (Heuristics)"
 st.sidebar.markdown(f"- **System Status:** `ONLINE`")
 st.sidebar.markdown(f"- **{ai_status}**")
 st.sidebar.markdown(f"- **Classifier:** `HistGradientBoosting`")
@@ -211,6 +211,16 @@ st.sidebar.markdown(f"- **Precision-Recall AUC:** `{metrics['pr_auc']:.4f}`")
 st.sidebar.markdown(f"- **Decision Threshold:** `{metrics['optimal_threshold']:.4f}`")
 st.sidebar.markdown(f"- **Test Partition:** `{metrics['test_sample_size']:,} shipments`")
 st.sidebar.markdown("---")
+
+# AI Engine Model Selector
+st.sidebar.markdown("### AI Architecture")
+selected_model_key = st.sidebar.selectbox(
+    "Inference Model:",
+    options=list(AVAILABLE_MODELS.keys()),
+    format_func=lambda k: AVAILABLE_MODELS[k],
+    index=0,
+    help="Select LLM model pool for operational briefs and Q&A. Auto-Failover pool seamlessly cascades across providers to prevent 429 rate limits.",
+)
 st.sidebar.caption(
     "Supervised gradient boosting with class-imbalanced weighting and cost-sensitive threshold optimization."
 )
@@ -595,10 +605,10 @@ if "analysis_cache" not in st.session_state:
     st.session_state.analysis_cache = {}
 
 with tab_copilot:
-    st.markdown("### Root Cause Diagnostic")
+    st.markdown("### Root Cause Diagnostic & Copilot")
     st.caption(
-        "Generates a structured operational memo for any historically delayed shipment. "
-        + ("Analysis powered by **DeepSeek** via OpenRouter." if _ai_available else
+        "Generates a structured operational memo and answers natural-language follow-ups for any delayed shipment. "
+        + ("Powered by **OpenRouter Multi-Model Cascade** (Gemini / DeepSeek / LLaMA)." if _ai_available else
            "Running on deterministic expert heuristics — add `OPENROUTER_API_KEY` to Streamlit secrets to enable AI.")
     )
 
@@ -623,7 +633,7 @@ with tab_copilot:
         )
 
     target_row = high_risk_orders.iloc[selected_idx].to_dict()
-    cache_key  = str(target_row.get("order_id", selected_idx))
+    cache_key  = f"{target_row.get('order_id', selected_idx)}_{selected_model_key}"
 
     with col_meta:
         target_pred = predictor.predict(target_row)
@@ -644,18 +654,29 @@ with tab_copilot:
 
     if generate_btn:
         if cache_key in st.session_state.analysis_cache:
-            # Serve from in-session cache — zero API cost
-            report_md = st.session_state.analysis_cache[cache_key]
-            st.caption("Served from session cache.")
+            memo_data = st.session_state.analysis_cache[cache_key]
+            st.caption(f"Served from session cache ({memo_data['source']}).")
+            st.markdown(memo_data["text"])
         else:
-            with st.spinner("Analysing shipment telemetry..."):
-                report_md = generate_llm_analysis(target_row, target_pred, api_key=API_KEY)
-                st.session_state.analysis_cache[cache_key] = report_md
-        st.markdown(report_md)
+            with st.spinner("Analysing shipment telemetry via AI cascade..."):
+                report_md, source_model, is_fallback = generate_llm_analysis(
+                    target_row, target_pred, api_key=API_KEY, preferred_model=selected_model_key, return_meta=True
+                )
+                st.session_state.analysis_cache[cache_key] = {
+                    "text": report_md,
+                    "source": source_model,
+                    "is_fallback": is_fallback,
+                }
+            if is_fallback:
+                st.caption(f"ℹ️ {source_model}")
+            else:
+                st.caption(f"⚡ Generated via `{source_model}` (OpenRouter)")
+            st.markdown(report_md)
 
     elif cache_key in st.session_state.analysis_cache:
-        st.caption("Previously generated for this order (session cache):")
-        st.markdown(st.session_state.analysis_cache[cache_key])
+        memo_data = st.session_state.analysis_cache[cache_key]
+        st.caption(f"Previously generated ({memo_data['source']}):")
+        st.markdown(memo_data["text"])
 
     else:
         st.info("Select a shipment above and click **Generate Operational Brief**.")
@@ -666,7 +687,7 @@ with tab_copilot:
     st.markdown("#### Ask the Analyst")
     st.caption(
         "Ask any follow-up question about the selected shipment or the broader dataset. "
-        "One focused question per request keeps API usage minimal."
+        "Intelligent failover prevents 429 rate limits."
     )
 
     user_question = st.text_input(
@@ -677,53 +698,44 @@ with tab_copilot:
     ask_btn = st.button("Ask", key="ask_analyst_btn")
 
     if ask_btn and user_question.strip():
-        qa_cache_key = f"qa_{cache_key}_{hash(user_question.strip())}"
+        qa_cache_key = f"qa_{cache_key}_{hash(user_question.strip())}_{selected_model_key}"
         if qa_cache_key in st.session_state.analysis_cache:
-            st.markdown(st.session_state.analysis_cache[qa_cache_key])
-            st.caption("Served from session cache.")
+            res = st.session_state.analysis_cache[qa_cache_key]
+            st.markdown(res["answer"])
+            if res.get("is_fallback"):
+                st.caption(f"ℹ️ {res['model']}")
+            else:
+                st.caption(f"⚡ Generated via `{res['model']}` (OpenRouter)")
         elif not _ai_available:
             st.warning(
-                "AI analysis is offline. Add your OpenRouter key to `.streamlit/secrets.toml` as "
-                "`OPENROUTER_API_KEY` to enable this feature."
+                "AI analysis is running in offline mode. Generating deterministic heuristic response."
             )
-        else:
-            import re as _re
-            safe_q = _re.sub(r"[^a-zA-Z0-9 .,?'\-:/]", "", user_question.strip())[:200]
-            qa_prompt = (
-                f"You are a supply-chain analyst.\n"
-                f"Context: Delayed shipment on the {target_row.get('seller_state','SP')} → "
-                f"{target_row.get('customer_state','RJ')} corridor. "
-                f"Actual delay: {target_row.get('delay_days', 0):.0f} days. "
-                f"Model breach probability: {target_pred['delay_probability_pct']}%.\n\n"
-                f"Question: {safe_q}\n\n"
-                f"Answer in 120 words or fewer. No emojis. Plain markdown only."
-            )
-            try:
-                import json as _json, urllib.request as _ur
-                payload = _json.dumps({
-                    "model": "deepseek/deepseek-chat",
-                    "messages": [{"role": "user", "content": qa_prompt}],
-                    "max_tokens": 160,
-                    "temperature": 0.2,
-                }).encode()
-                req = _ur.Request(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    data=payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {API_KEY}",
-                        "HTTP-Referer": "https://github.com/oddproblem/ecom-analytics",
-                        "X-Title": "SLA Intelligence Console",
-                    },
-                    method="POST",
+            with st.spinner("Calculating operational heuristic advisory..."):
+                res = ask_analyst_qa(
+                    order_context=target_row,
+                    question=user_question,
+                    prediction_result=target_pred,
+                    api_key=None,
+                    preferred_model=selected_model_key,
                 )
-                with _ur.urlopen(req, timeout=10) as resp:
-                    body = _json.loads(resp.read().decode())
-                    answer = body["choices"][0]["message"]["content"].strip()
-                    st.session_state.analysis_cache[qa_cache_key] = answer
-                    st.markdown(answer)
-            except Exception as err:
-                st.error(f"API request failed: {err}")
+                st.session_state.analysis_cache[qa_cache_key] = res
+                st.markdown(res["answer"])
+                st.caption(f"ℹ️ {res['model']}")
+        else:
+            with st.spinner("Consulting LLM Operational Advisor..."):
+                res = ask_analyst_qa(
+                    order_context=target_row,
+                    question=user_question,
+                    prediction_result=target_pred,
+                    api_key=API_KEY,
+                    preferred_model=selected_model_key,
+                )
+                st.session_state.analysis_cache[qa_cache_key] = res
+                st.markdown(res["answer"])
+                if res.get("is_fallback"):
+                    st.caption(f"ℹ️ {res['model']}")
+                else:
+                    st.caption(f"⚡ Generated via `{res['model']}` (OpenRouter)")
     elif ask_btn and not user_question.strip():
         st.warning("Please type a question before clicking Ask.")
 

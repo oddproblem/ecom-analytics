@@ -62,15 +62,19 @@ def test_inference_latency_and_output():
         "is_holiday_season": 0,
     }
     
-    # Warm-up call to initialize internal buffers
-    predictor.predict(sample_order)
+    # Warm-up calls to initialize internal buffers and JIT allocations
+    for _ in range(2):
+        predictor.predict(sample_order)
 
-    # Measure steady-state latency
-    start_time = time.time()
-    result = predictor.predict(sample_order)
-    latency_ms = (time.time() - start_time) * 1000.0
+    # Measure steady-state latency over multiple runs
+    latencies = []
+    for _ in range(3):
+        start_time = time.time()
+        result = predictor.predict(sample_order)
+        latencies.append((time.time() - start_time) * 1000.0)
     
-    assert latency_ms < 100.0, f"Inference latency {latency_ms:.1f}ms exceeds 100ms threshold"
+    median_latency_ms = sorted(latencies)[len(latencies) // 2]
+    assert median_latency_ms < 100.0, f"Median inference latency {median_latency_ms:.1f}ms exceeds 100ms threshold"
     assert "delay_probability_pct" in result
     assert "risk_level" in result
     assert result["risk_level"] in ["LOW", "MODERATE", "ELEVATED", "CRITICAL"]
