@@ -18,6 +18,7 @@ import json
 import logging
 import urllib.request
 import urllib.error
+from typing import Any, Dict, List, Optional, Tuple
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sla_advisor")
@@ -52,7 +53,7 @@ def _sanitize(value: str, max_len: int = 20) -> str:
     return re.sub(r"[^a-zA-Z0-9_\-]", "", value)[:max_len]
 
 
-def _resolve_key(api_key: str | None = None) -> str | None:
+def _resolve_key(api_key: Optional[str] = None) -> Optional[str]:
     """Return OpenRouter key from explicit arg -> env -> Streamlit secrets -> None."""
     if api_key and api_key.strip():
         return api_key.strip()
@@ -70,12 +71,12 @@ def _resolve_key(api_key: str | None = None) -> str | None:
 
 
 def _call_openrouter(
-    messages: list[dict],
+    messages: List[Dict[str, Any]],
     max_tokens: int = 400,
     temperature: float = 0.2,
-    api_key: str | None = None,
-    preferred_model: str | None = None,
-) -> tuple[str | None, str]:
+    api_key: Optional[str] = None,
+    preferred_model: Optional[str] = None,
+) -> Tuple[Optional[str], str]:
     """
     Executes a chat completion request to OpenRouter with automatic multi-model failover.
     Returns: (response_text, model_name_or_error)
@@ -178,10 +179,10 @@ Keep the total response under 380 words."""
 def generate_llm_analysis(
     order_features: dict,
     prediction_result: dict,
-    api_key: str | None = None,
-    preferred_model: str | None = None,
+    api_key: Optional[str] = None,
+    preferred_model: Optional[str] = None,
     return_meta: bool = False,
-) -> str | tuple[str, str, bool]:
+) -> Any:
     """
     Returns a structured operational memo.
 
@@ -250,9 +251,9 @@ If tracking does not register a line-haul scan by Day {max(1, int(sla_window) - 
 def ask_analyst_qa(
     order_context: dict,
     question: str,
-    prediction_result: dict | None = None,
-    api_key: str | None = None,
-    preferred_model: str | None = None,
+    prediction_result: Optional[Dict[str, Any]] = None,
+    api_key: Optional[str] = None,
+    preferred_model: Optional[str] = None,
 ) -> dict:
     """
     Q&A chatbot engine for supply-chain operational follow-ups.
